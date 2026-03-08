@@ -69,11 +69,13 @@ Modern responsive UI built with **React + Tailwind CSS**.
 ---
 
 ## 🏗 Project Structure
+```
 ApolloGuard/
 ├── backend/ # Node.js + Express API
 ├── frontend/ # React + Vite + Tailwind SPA
 ├── ml-service/ # FastAPI ML microservice
 └── database/ # PostgreSQL schemas & migrations
+```
 
 ---
 
