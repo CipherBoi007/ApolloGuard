@@ -536,7 +536,7 @@ const Landing = () => {
             Start improving patient outcomes today
           </h2>
           <p className="text-lg text-white/80 mb-8">
-            Join thousands of healthcare providers already using ApolloGuard
+            Join thousands of healthcare providers already using MediPredict
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/login?role=doctor">
@@ -580,7 +580,7 @@ const Landing = () => {
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <HeartPulse className="w-5 h-5 text-slate-900" />
-                <span className="font-semibold text-slate-900">ApolloGuard</span>
+                <span className="font-semibold text-slate-900">Apollo</span>
               </div>
               <p className="text-sm text-slate-600">
                 © 2024 ApolloGuard Inc.<br />

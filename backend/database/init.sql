@@ -1,9 +1,3 @@
--- Create database
-CREATE DATABASE apollo;
-
--- Connect to database
-\c apollo;
-
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 

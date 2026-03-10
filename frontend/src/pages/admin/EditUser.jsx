@@ -17,7 +17,8 @@ import {
   Droplet,
   Ruler,
   Weight,
-  AlertCircle
+  AlertCircle,
+  RotateCw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -26,6 +27,8 @@ const EditUser = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
   const [user, setUser] = useState(null);
   const [formData, setFormData] = useState({
     first_name: '',
@@ -98,6 +101,7 @@ const EditUser = () => {
         experience_years: userData.staff_details?.experience_years || '',
         qualification: userData.staff_details?.qualification || ''
       });
+      setLastUpdated(new Date());
     } catch (error) {
       console.error('Failed to fetch user:', error);
       toast.error('Failed to load user data');
@@ -105,6 +109,13 @@ const EditUser = () => {
     } finally {
       setFetchLoading(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchUser();
+    setRefreshing(false);
+    toast.success('Data refreshed');
   };
 
   const handleChange = (e) => {
@@ -190,24 +201,54 @@ const EditUser = () => {
   const RoleIcon = getRoleIcon(formData.role);
 
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={() => navigate(`/admin/users/${id}`)}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5 text-slate-600" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Edit User</h1>
-            <p className="text-sm text-slate-500 mt-1">Update user information and permissions</p>
+    <div className="px-8 py-6 max-w-4xl mx-auto">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-slate-200 -mx-8 px-8 py-4 shadow-sm mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => navigate(`/admin/users/${id}`)}
+              className="p-2 hover:bg-slate-100 rounded-lg transition-colors group"
+              title="Go back"
+            >
+              <ArrowLeft className="w-5 h-5 text-slate-600 group-hover:text-slate-900" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Edit User</h1>
+              <p className="text-sm text-slate-500 mt-1">Update user information and permissions</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            {/* Live Indicator */}
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span className="text-xs text-slate-500">
+                  Live • Updated {lastUpdated.toLocaleTimeString()}
+                </span>
+              </div>
+              
+              {/* Refresh Button */}
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors group"
+                title="Refresh data"
+              >
+                <RotateCw className={`w-4 h-4 text-slate-600 group-hover:text-slate-900 ${
+                  refreshing ? 'animate-spin' : ''
+                }`} />
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6">
         {/* User Info Header */}
         <div className="flex items-center space-x-4 pb-6 border-b border-slate-200">
           <div className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold ${
@@ -222,7 +263,7 @@ const EditUser = () => {
             <h2 className="text-xl font-semibold text-slate-900">
               {formData.first_name} {formData.last_name}
             </h2>
-            <p className="text-sm text-slate-500 capitalize">{formData.role}</p>
+            <p className="text-sm text-slate-600 capitalize">{formData.role}</p>
           </div>
           <div className="ml-auto">
             <label className="flex items-center space-x-2">
@@ -232,7 +273,7 @@ const EditUser = () => {
                 name="is_active"
                 checked={formData.is_active}
                 onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
-                className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                className="w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500/20 focus:ring-2"
               />
             </label>
           </div>
@@ -241,9 +282,9 @@ const EditUser = () => {
         {/* Basic Information */}
         <div>
           <h3 className="text-lg font-semibold text-slate-900 mb-4">Basic Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 First Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -251,12 +292,13 @@ const EditUser = () => {
                 name="first_name"
                 value={formData.first_name}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900"
+                placeholder="John"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 Last Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -264,12 +306,13 @@ const EditUser = () => {
                 name="last_name"
                 value={formData.last_name}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900"
+                placeholder="Doe"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 Email <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -279,13 +322,14 @@ const EditUser = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900"
+                  placeholder="john.doe@example.com"
                   required
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 Phone Number
               </label>
               <div className="relative">
@@ -295,7 +339,8 @@ const EditUser = () => {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900"
+                  placeholder="+1 (555) 000-0000"
                 />
               </div>
             </div>
@@ -304,11 +349,11 @@ const EditUser = () => {
 
         {/* Patient Specific Fields */}
         {formData.role === 'patient' && (
-          <div>
+          <div className="pt-6 border-t border-slate-200">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">Patient Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Date of Birth
                 </label>
                 <div className="relative">
@@ -318,28 +363,28 @@ const EditUser = () => {
                     name="date_of_birth"
                     value={formData.date_of_birth}
                     onChange={handleChange}
-                    className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                    className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Gender
                 </label>
                 <select
                   name="gender"
                   value={formData.gender}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900"
                 >
-                  <option value="">Select Gender</option>
+                  <option value="" className="text-slate-500">Select Gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Other">Other</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Blood Group
                 </label>
                 <div className="relative">
@@ -348,9 +393,9 @@ const EditUser = () => {
                     name="blood_group"
                     value={formData.blood_group}
                     onChange={handleChange}
-                    className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                    className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900"
                   >
-                    <option value="">Select Blood Group</option>
+                    <option value="" className="text-slate-500">Select Blood Group</option>
                     <option value="A+">A+</option>
                     <option value="A-">A-</option>
                     <option value="B+">B+</option>
@@ -363,7 +408,7 @@ const EditUser = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Emergency Contact
                 </label>
                 <input
@@ -371,12 +416,12 @@ const EditUser = () => {
                   name="emergency_contact"
                   value={formData.emergency_contact}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
-                  placeholder="555-0199"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900"
+                  placeholder="+1 (555) 000-0000"
                 />
               </div>
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Address
                 </label>
                 <div className="relative">
@@ -386,13 +431,13 @@ const EditUser = () => {
                     name="address"
                     value={formData.address}
                     onChange={handleChange}
-                    className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                    className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900"
                     placeholder="123 Main St"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   City
                 </label>
                 <input
@@ -400,11 +445,12 @@ const EditUser = () => {
                   name="city"
                   value={formData.city}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900"
+                  placeholder="New York"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   State
                 </label>
                 <input
@@ -412,11 +458,12 @@ const EditUser = () => {
                   name="state"
                   value={formData.state}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900"
+                  placeholder="NY"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   ZIP Code
                 </label>
                 <input
@@ -424,11 +471,12 @@ const EditUser = () => {
                   name="zip_code"
                   value={formData.zip_code}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900"
+                  placeholder="10001"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Height (cm)
                 </label>
                 <div className="relative">
@@ -438,12 +486,13 @@ const EditUser = () => {
                     name="height"
                     value={formData.height}
                     onChange={handleChange}
-                    className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                    className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900"
+                    placeholder="175"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Weight (kg)
                 </label>
                 <div className="relative">
@@ -453,35 +502,38 @@ const EditUser = () => {
                     name="weight"
                     value={formData.weight}
                     onChange={handleChange}
-                    className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                    className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900"
+                    placeholder="70"
                   />
                 </div>
               </div>
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Allergies
                 </label>
                 <textarea
                   name="allergies"
                   value={formData.allergies}
                   onChange={handleChange}
-                  rows="2"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
-                  placeholder="List any known allergies"
+                  rows="3"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900 resize-none"
+                  placeholder="List any known allergies (e.g., Penicillin, Peanuts)"
                 />
+                <p className="mt-1 text-xs text-slate-400">Separate multiple allergies with commas</p>
               </div>
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Chronic Conditions
                 </label>
                 <textarea
                   name="chronic_conditions"
                   value={formData.chronic_conditions}
                   onChange={handleChange}
-                  rows="2"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
-                  placeholder="List any chronic conditions"
+                  rows="3"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900 resize-none"
+                  placeholder="List any chronic conditions (e.g., Diabetes, Hypertension)"
                 />
+                <p className="mt-1 text-xs text-slate-400">Separate multiple conditions with commas</p>
               </div>
             </div>
           </div>
@@ -489,11 +541,11 @@ const EditUser = () => {
 
         {/* Staff Specific Fields */}
         {(formData.role === 'doctor' || formData.role === 'nurse') && (
-          <div>
+          <div className="pt-6 border-t border-slate-200">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">Professional Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Specialization
                 </label>
                 <input
@@ -501,12 +553,12 @@ const EditUser = () => {
                   name="specialization"
                   value={formData.specialization}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900"
                   placeholder={formData.role === 'doctor' ? 'Cardiology' : 'ICU'}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   License Number
                 </label>
                 <input
@@ -514,12 +566,12 @@ const EditUser = () => {
                   name="license_number"
                   value={formData.license_number}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900"
                   placeholder="LIC12345"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Department
                 </label>
                 <input
@@ -527,12 +579,12 @@ const EditUser = () => {
                   name="department"
                   value={formData.department}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900"
                   placeholder="Cardiology"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Years of Experience
                 </label>
                 <input
@@ -540,20 +592,20 @@ const EditUser = () => {
                   name="experience_years"
                   value={formData.experience_years}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900"
                   placeholder="10"
                 />
               </div>
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Qualifications
                 </label>
                 <textarea
                   name="qualification"
                   value={formData.qualification}
                   onChange={handleChange}
-                  rows="2"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition"
+                  rows="3"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition text-slate-900 resize-none"
                   placeholder="MD, Board Certified, etc."
                 />
               </div>
@@ -566,14 +618,14 @@ const EditUser = () => {
           <button
             type="button"
             onClick={() => navigate(`/admin/users/${id}`)}
-            className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+            className="px-4 py-2.5 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center"
+            className="px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center min-w-[120px] justify-center"
           >
             {loading ? (
               <>

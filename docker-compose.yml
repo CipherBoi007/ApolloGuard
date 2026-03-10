@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+      - ml-service
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=apollo
+      - DB_USER=hospital_user
+      - DB_PASSWORD=hospital_password
+      - ML_SERVICE_URL=http://ml-service:5001
+      - JWT_SECRET=your_jwt_secret_here
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
+  ml-service:
+    build: ./ml_service
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./ml_service/models:/app/models
+      - ./ml_service/data:/app/data
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=info
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=apollo
+      - POSTGRES_USER=hospital_user
+      - POSTGRES_PASSWORD=hospital_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  hospital-network:
+    driver: bridge
